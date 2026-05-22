@@ -53,7 +53,7 @@ export default function CardioLogForm({ onAdd }: Props) {
       setDistance('');
       setMinutes('');
       setSeconds('');
-    } catch (err) {
+    } catch {
       // Feil håndteres i onAdd
     } finally {
       setSaving(false);

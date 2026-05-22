@@ -29,7 +29,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           if (validatePassword(storedProfile, password)) {
             return storedProfile;
           }
-        } catch (err) {
+        } catch {
           // Ugyldig hash - tøm storage
           localStorage.removeItem(STORAGE_KEY);
           localStorage.removeItem(STORAGE_HASH_KEY);

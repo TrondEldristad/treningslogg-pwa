@@ -77,7 +77,7 @@ export default function StrengthLogForm({ onAdd }: Props) {
       setDefaultWeight('');
       setNumSets('3');
       setDefaultReps('10');
-    } catch (err) {
+    } catch {
       // Feil håndteres i onAdd
     } finally {
       setSaving(false);

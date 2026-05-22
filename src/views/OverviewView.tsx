@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Dumbbell, Activity, MapPin, Zap } from 'lucide-react';
+import { TrendingUp, Dumbbell, Activity, MapPin } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useWeeklyActivity } from '../hooks/useWeeklyActivity';
 import type { TrainingDay, Exercise } from '../types';

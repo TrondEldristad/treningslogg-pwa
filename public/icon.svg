@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#0f0f0f"/>
+  <!-- Dumbbell icon -->
+  <!-- Left end cap outer -->
+  <rect x="48" y="200" width="40" height="112" rx="12" fill="#e5e5e5"/>
+  <!-- Left end cap inner -->
+  <rect x="72" y="220" width="28" height="72" rx="8" fill="#e5e5e5"/>
+  <!-- Left bar segment -->
+  <rect x="100" y="236" width="68" height="40" rx="6" fill="#a3a3a3"/>
+  <!-- Center bar -->
+  <rect x="168" y="244" width="176" height="24" rx="4" fill="#737373"/>
+  <!-- Right bar segment -->
+  <rect x="344" y="236" width="68" height="40" rx="6" fill="#a3a3a3"/>
+  <!-- Right end cap inner -->
+  <rect x="412" y="220" width="28" height="72" rx="8" fill="#e5e5e5"/>
+  <!-- Right end cap outer -->
+  <rect x="424" y="200" width="40" height="112" rx="12" fill="#e5e5e5"/>
+</svg>

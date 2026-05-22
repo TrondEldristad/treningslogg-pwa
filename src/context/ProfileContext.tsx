@@ -5,6 +5,11 @@ export type UserName = 'Marisol' | 'Therese' | 'Trond';
 
 const STORAGE_KEY = 'workout_active_profile';
 const STORAGE_HASH_KEY = 'workout_password_hash';
+const STORAGE_TIMESTAMP_KEY = 'workout_login_timestamp';
+
+// Session varer i 7 dager
+const SESSION_DURATION_DAYS = 7;
+const SESSION_DURATION_MS = SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000;
 
 interface ProfileContextValue {
   activeProfile: UserName | null;
@@ -16,12 +21,26 @@ const ProfileContext = createContext<ProfileContextValue | null>(null);
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [activeProfile, setActiveProfileState] = useState<UserName | null>(() => {
-    // Sjekk om bruker har lagret profil og passord-hash
+    // Sjekk om bruker har lagret profil, passord-hash og timestamp
     const storedProfile = localStorage.getItem(STORAGE_KEY);
     const storedHash = localStorage.getItem(STORAGE_HASH_KEY);
+    const loginTimestamp = localStorage.getItem(STORAGE_TIMESTAMP_KEY);
     
-    if (storedProfile && storedHash) {
-      // Valider at profilen er gyldig
+    if (storedProfile && storedHash && loginTimestamp) {
+      // Sjekk om session er utløpt (7 dager)
+      const now = Date.now();
+      const loginTime = parseInt(loginTimestamp, 10);
+      const sessionAge = now - loginTime;
+      
+      if (sessionAge > SESSION_DURATION_MS) {
+        // Session utløpt - tøm storage
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_HASH_KEY);
+        localStorage.removeItem(STORAGE_TIMESTAMP_KEY);
+        return null;
+      }
+      
+      // Session fortsatt gyldig - valider profil og passord
       if (storedProfile === 'Marisol' || storedProfile === 'Therese' || storedProfile === 'Trond') {
         try {
           // Dekode hash og valider passord
@@ -33,6 +52,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           // Ugyldig hash - tøm storage
           localStorage.removeItem(STORAGE_KEY);
           localStorage.removeItem(STORAGE_HASH_KEY);
+          localStorage.removeItem(STORAGE_TIMESTAMP_KEY);
         }
       }
     }
@@ -53,6 +73,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setActiveProfileState(null);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(STORAGE_HASH_KEY);
+    localStorage.removeItem(STORAGE_TIMESTAMP_KEY);
   };
 
   return (

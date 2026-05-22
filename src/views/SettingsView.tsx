@@ -29,6 +29,28 @@ export default function SettingsView({ userName, onSwitchProfile }: Props) {
     }
   };
 
+  const getSessionInfo = () => {
+    const timestamp = localStorage.getItem('workout_login_timestamp');
+    if (!timestamp) return null;
+    
+    const loginTime = parseInt(timestamp, 10);
+    const expiryTime = loginTime + (7 * 24 * 60 * 60 * 1000); // 7 dager
+    const now = Date.now();
+    const daysLeft = Math.ceil((expiryTime - now) / (24 * 60 * 60 * 1000));
+    
+    if (daysLeft <= 0) return null;
+    
+    return {
+      daysLeft,
+      expiryDate: new Date(expiryTime).toLocaleDateString('nb-NO', { 
+        day: 'numeric', 
+        month: 'short' 
+      })
+    };
+  };
+
+  const sessionInfo = getSessionInfo();
+
   async function load() {
     setLoading(true);
     const [daysRes, exRes] = await Promise.all([
@@ -45,7 +67,10 @@ export default function SettingsView({ userName, onSwitchProfile }: Props) {
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, [userName]);
+  useEffect(() => { 
+    load(); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userName]);
 
   const restore = async (exercise: Exercise) => {
     await supabase.from('exercises').update({ archived: false }).eq('id', exercise.id);
@@ -75,6 +100,22 @@ export default function SettingsView({ userName, onSwitchProfile }: Props) {
 
       {/* Logg ut-seksjon */}
       <div className="mb-6 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm text-[#888]">Innlogget som</span>
+          <span className="text-sm font-bold text-white">{userName}</span>
+        </div>
+        
+        {sessionInfo && (
+          <div className="mb-3 pb-3 border-b border-[#2a2a2a]">
+            <div className="text-xs text-[#666]">
+              Innlogget i <span className="text-orange-400 font-semibold">{sessionInfo.daysLeft} dag{sessionInfo.daysLeft !== 1 ? 'er' : ''}</span> til
+            </div>
+            <div className="text-xs text-[#555] mt-1">
+              Session utløper {sessionInfo.expiryDate}
+            </div>
+          </div>
+        )}
+        
         <button 
           onClick={handleLogout}
           className="flex items-center gap-3 text-red-400 hover:text-red-300 transition-colors cursor-pointer"

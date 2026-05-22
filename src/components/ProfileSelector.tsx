@@ -45,9 +45,13 @@ export default function ProfileSelector({ onSelect }: Props) {
     if (!selectedProfile) return;
     
     if (validatePassword(selectedProfile, password)) {
-      // Lagre hash for "husk meg"
+      // Lagre hash OG timestamp for 7-dagers session
       const hash = btoa(password);
+      const timestamp = Date.now().toString();
+      
       localStorage.setItem('workout_password_hash', hash);
+      localStorage.setItem('workout_login_timestamp', timestamp);
+      
       onSelect(selectedProfile);
     } else {
       setError('Feil passord. Prøv igjen.');
@@ -59,6 +63,11 @@ export default function ProfileSelector({ onSelect }: Props) {
     if (e.key === 'Enter' && password.length > 0) {
       handleLogin();
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleLogin();
   };
 
   return (
@@ -108,10 +117,26 @@ export default function ProfileSelector({ onSelect }: Props) {
             </div>
 
             {/* Passord input */}
-            <div className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-3">
+              {/* Skjult brukernavn-felt som hjelper iOS å identifisere brukernavn */}
+              <input
+                type="text"
+                name="username"
+                id={`username-${selectedProfile}`}
+                value={selectedProfile}
+                autoComplete="username"
+                readOnly
+                style={{ position: 'absolute', left: '-9999px' }}
+                aria-hidden="true"
+                tabIndex={-1}
+              />
+              
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  id={`password-${selectedProfile}`}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(''); }}
                   onKeyPress={handleKeyPress}
@@ -138,6 +163,7 @@ export default function ProfileSelector({ onSelect }: Props) {
 
               <div className="flex gap-3">
                 <button
+                  type="button"
                   onClick={() => setSelectedProfile(null)}
                   className="flex-1 px-4 py-3 bg-[#1a1a1a] border-2 border-[#2a2a2a] rounded-xl text-[#999] font-bold hover:border-[#444] transition-all active:scale-[0.98]"
                   aria-label="Tilbake til profil-valg"
@@ -145,7 +171,7 @@ export default function ProfileSelector({ onSelect }: Props) {
                   Tilbake
                 </button>
                 <button
-                  onClick={handleLogin}
+                  type="submit"
                   disabled={password.length === 0}
                   className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all active:scale-[0.98] ${
                     password.length === 0
@@ -157,7 +183,7 @@ export default function ProfileSelector({ onSelect }: Props) {
                   Logg inn
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         )}
       </div>

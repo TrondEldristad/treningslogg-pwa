@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Archive, ArchiveRestore, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Archive, ArchiveRestore, Trash2, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { TrainingDay, Exercise } from '../types';
 import type { UserName } from '../context/ProfileContext';
+import { useProfile } from '../context/ProfileContext';
 import Modal from '../components/Modal';
 
 interface Props {
@@ -16,10 +17,17 @@ interface DayWithExercises {
 }
 
 export default function SettingsView({ userName, onSwitchProfile }: Props) {
+  const { logout } = useProfile();
   const [data, setData] = useState<DayWithExercises[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [confirmDeleteExercise, setConfirmDeleteExercise] = useState<Exercise | null>(null);
+
+  const handleLogout = () => {
+    if (confirm('Er du sikker på at du vil logge ut?')) {
+      logout();
+    }
+  };
 
   async function load() {
     setLoading(true);
@@ -64,6 +72,19 @@ export default function SettingsView({ userName, onSwitchProfile }: Props) {
           Bytt
         </button>
       </div>
+
+      {/* Logg ut-seksjon */}
+      <div className="mb-6 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl">
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-3 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+          aria-label="Logg ut"
+        >
+          <LogOut size={20} aria-label="Logg ut ikon" />
+          <span className="font-semibold">Logg ut</span>
+        </button>
+      </div>
+
       <p className="text-sm text-[#444] mb-6">Administrer arkiverte øvelser</p>
 
       <div className="flex items-center gap-2 mb-4">

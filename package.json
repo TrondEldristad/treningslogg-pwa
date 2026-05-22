@@ -1,7 +1,8 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "treningslogg-pwa",
+  "version": "1.0.0",
+  "description": "Personlig treningstracker PWA med React, TypeScript og Supabase",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

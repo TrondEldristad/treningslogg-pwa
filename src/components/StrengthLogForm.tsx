@@ -42,20 +42,46 @@ export default function StrengthLogForm({ onAdd }: Props) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validering
+    if (setsData.length === 0) {
+      alert('Legg til minst ett sett');
+      return;
+    }
+    
+    for (const set of setsData) {
+      const reps = Number(set.reps);
+      const weight = Number(set.weight_kg);
+      
+      if (!set.reps || reps < 1) {
+        alert('Repetisjoner må være minst 1');
+        return;
+      }
+      if (weight < 0) {
+        alert('Vekt kan ikke være negativ');
+        return;
+      }
+    }
+    
     setSaving(true);
-    const numeric: SetData[] = setsData.map(s => ({
-      set: s.set,
-      reps: Number(s.reps) || 0,
-      weight_kg: Number(s.weight_kg) || 0,
-    }));
-    const avgReps = Math.round(numeric.reduce((sum, s) => sum + s.reps, 0) / numeric.length);
-    const maxWeight = Math.max(...numeric.map(s => s.weight_kg));
-    await onAdd(numeric.length, avgReps, maxWeight, date, numeric);
-    setStep('config');
-    setDefaultWeight('');
-    setNumSets('3');
-    setDefaultReps('10');
-    setSaving(false);
+    try {
+      const numeric: SetData[] = setsData.map(s => ({
+        set: s.set,
+        reps: Number(s.reps) || 0,
+        weight_kg: Number(s.weight_kg) || 0,
+      }));
+      const avgReps = Math.round(numeric.reduce((sum, s) => sum + s.reps, 0) / numeric.length);
+      const maxWeight = Math.max(...numeric.map(s => s.weight_kg));
+      await onAdd(numeric.length, avgReps, maxWeight, date, numeric);
+      setStep('config');
+      setDefaultWeight('');
+      setNumSets('3');
+      setDefaultReps('10');
+    } catch (err) {
+      // Feil håndteres i onAdd
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (step === 'sets') {
@@ -92,17 +118,21 @@ export default function StrengthLogForm({ onAdd }: Props) {
                 <input
                   type="number"
                   min="1"
+                  required
                   value={s.reps}
                   onChange={e => updateSet(i, 'reps', e.target.value)}
                   className={smallInputCls}
+                  aria-label={`Repetisjoner for sett ${s.set}`}
                 />
                 <input
                   type="number"
                   min="0"
                   step="0.5"
+                  required
                   value={s.weight_kg}
                   onChange={e => updateSet(i, 'weight_kg', e.target.value)}
                   className={smallInputCls}
+                  aria-label={`Vekt for sett ${s.set}`}
                 />
               </div>
             ))}
@@ -126,15 +156,44 @@ export default function StrengthLogForm({ onAdd }: Props) {
       <div className="grid grid-cols-3 gap-2 mb-3 overflow-hidden">
         <div className="min-w-0">
           <label className="text-xs text-[#555] font-bold block mb-1 uppercase tracking-wide">Sett</label>
-          <input type="number" min="1" value={numSets} onChange={e => setNumSets(e.target.value)} className={inputCls} />
+          <input 
+            type="number" 
+            min="1" 
+            max="20"
+            required
+            value={numSets} 
+            onChange={e => setNumSets(e.target.value)} 
+            className={inputCls}
+            aria-label="Antall sett" 
+          />
         </div>
         <div className="min-w-0">
           <label className="text-xs text-[#555] font-bold block mb-1 uppercase tracking-wide">Reps</label>
-          <input type="number" min="1" value={defaultReps} onChange={e => setDefaultReps(e.target.value)} className={inputCls} />
+          <input 
+            type="number" 
+            min="1" 
+            max="100"
+            required
+            value={defaultReps} 
+            onChange={e => setDefaultReps(e.target.value)} 
+            className={inputCls}
+            aria-label="Repetisjoner per sett" 
+          />
         </div>
         <div className="min-w-0">
           <label className="text-xs text-[#555] font-bold block mb-1 uppercase tracking-wide">Kilo</label>
-          <input type="number" min="0" step="0.5" value={defaultWeight} onChange={e => setDefaultWeight(e.target.value)} placeholder="0" className={inputCls} />
+          <input 
+            type="number" 
+            min="0" 
+            step="0.5" 
+            max="500"
+            required
+            value={defaultWeight} 
+            onChange={e => setDefaultWeight(e.target.value)} 
+            placeholder="0" 
+            className={inputCls}
+            aria-label="Vekt i kilo" 
+          />
         </div>
       </div>
       <div className="mb-3">

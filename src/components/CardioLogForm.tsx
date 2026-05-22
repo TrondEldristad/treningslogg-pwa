@@ -29,13 +29,35 @@ export default function CardioLogForm({ onAdd }: Props) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    
+    // Validering
+    const dist = Number(distance);
+    const totalMins = (Number(minutes) || 0) + (Number(seconds) || 0) / 60;
+    
+    if (dist <= 0) {
+      alert('Distanse må være større enn 0');
+      return;
+    }
+    if (totalMins <= 0) {
+      alert('Varighet må være større enn 0');
+      return;
+    }
+    if (Number(seconds) > 59) {
+      alert('Sekunder må være mellom 0 og 59');
+      return;
+    }
+    
     setSaving(true);
-    await onAdd(Number(distance), totalMinutes, date);
-    setDistance('');
-    setMinutes('');
-    setSeconds('');
-    setSaving(false);
+    try {
+      await onAdd(dist, totalMins, date);
+      setDistance('');
+      setMinutes('');
+      setSeconds('');
+    } catch (err) {
+      // Feil håndteres i onAdd
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -45,12 +67,15 @@ export default function CardioLogForm({ onAdd }: Props) {
           <label className="text-xs text-[#555] font-bold block mb-1 uppercase tracking-wide">Km</label>
           <input
             type="number"
-            min="0"
+            min="0.01"
             step="0.01"
+            max="500"
+            required
             value={distance}
             onChange={e => setDistance(e.target.value)}
             placeholder="0.00"
             className={inputCls}
+            aria-label="Distanse i kilometer"
           />
         </div>
         <div className="min-w-0">
@@ -58,10 +83,13 @@ export default function CardioLogForm({ onAdd }: Props) {
           <input
             type="number"
             min="0"
+            max="999"
+            required
             value={minutes}
             onChange={e => setMinutes(e.target.value)}
             placeholder="0"
             className={inputCls}
+            aria-label="Minutter"
           />
         </div>
         <div className="min-w-0">
@@ -74,6 +102,7 @@ export default function CardioLogForm({ onAdd }: Props) {
             onChange={e => setSeconds(e.target.value)}
             placeholder="0"
             className={inputCls}
+            aria-label="Sekunder"
           />
         </div>
       </div>

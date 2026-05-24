@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import { validatePassword } from '../config/profiles';
+import { validatePassword, getUserByDisplayName } from '../config/profiles';
 
 export type UserName = 'Marisol' | 'Therese' | 'Trond';
 
@@ -45,7 +45,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         try {
           // Dekode hash og valider passord
           const password = atob(storedHash);
-          if (validatePassword(storedProfile, password)) {
+          // Ny validering via getUserByDisplayName for å støtte nye passord
+          const user = getUserByDisplayName(storedProfile);
+          if (user && validatePassword(storedProfile, password)) {
             return storedProfile;
           }
         } catch {

@@ -1,10 +1,10 @@
 import type { UserName } from '../context/ProfileContext';
 
-export interface ProfileConfig {
-  name: UserName;
+export interface User {
+  username: string;          // 'marisol' (lowercase, for innlogging)
+  displayName: UserName;     // 'Marisol' (for display i UI)
+  passwordHash: string;      // Obfuskert passord
   color: 'rose' | 'cyan' | 'amber';
-  // Obfuskert passord (base64 + reversering)
-  _k: string;
 }
 
 // Enkel obfuskering - ikke kryptografisk sikker, men skjuler klartekst
@@ -16,35 +16,89 @@ const deobfuscate = (str: string): string => {
   return atob(str).split('').reverse().join('');
 };
 
-// VIKTIG: Endre disse passordene ved første gangs bruk!
-// Nåværende passord for alle: "treninglogg2026"
-const profiles: ProfileConfig[] = [
-  { 
-    name: 'Marisol', 
-    color: 'rose',
-    _k: obfuscate('treninglogg2026')
+// Brukerdatabase med individuelle passord
+const users: User[] = [
+  {
+    username: 'marisol',
+    displayName: 'Marisol',
+    passwordHash: obfuscate('marisolPass2026'),
+    color: 'rose'
   },
-  { 
-    name: 'Therese', 
-    color: 'cyan',
-    _k: obfuscate('treninglogg2026')
+  {
+    username: 'therese',
+    displayName: 'Therese',
+    passwordHash: obfuscate('theresePass2026'),
+    color: 'cyan'
   },
-  { 
-    name: 'Trond', 
-    color: 'amber',
-    _k: obfuscate('treninglogg2026')
-  },
+  {
+    username: 'trond',
+    displayName: 'Trond',
+    passwordHash: obfuscate('trondPass2026'),
+    color: 'amber'
+  }
 ];
 
-export const getProfiles = () => profiles;
-
-export const validatePassword = (name: UserName, password: string): boolean => {
-  const profile = profiles.find(p => p.name === name);
-  if (!profile) return false;
-  return deobfuscate(profile._k) === password;
+/**
+ * Validerer brukernavn og passord
+ * @param username - Brukernavn (case-insensitive)
+ * @param password - Passord i klartekst
+ * @returns User-objekt hvis gyldig, null hvis ugyldig
+ */
+export const validateLogin = (username: string, password: string): User | null => {
+  // Normaliser brukernavn (lowercase, trim whitespace)
+  const normalizedUsername = username.toLowerCase().trim();
+  
+  // Finn bruker
+  const user = users.find(u => u.username === normalizedUsername);
+  if (!user) return null;
+  
+  // Valider passord
+  const isValidPassword = deobfuscate(user.passwordHash) === password;
+  if (!isValidPassword) return null;
+  
+  return user;
 };
 
+/**
+ * Henter bruker basert på displayName (for bakoverkompatibilitet)
+ */
+export const getUserByDisplayName = (displayName: UserName): User | null => {
+  return users.find(u => u.displayName === displayName) ?? null;
+};
+
+/**
+ * Henter farge for en bruker (bakoverkompatibilitet)
+ */
 export const getProfileColor = (name: UserName): string => {
-  const profile = profiles.find(p => p.name === name);
-  return profile?.color ?? 'rose';
+  const user = users.find(u => u.displayName === name);
+  return user?.color ?? 'rose';
+};
+
+/**
+ * Returnerer alle brukernavn (for fremtidig bruk)
+ */
+export const getAllUsernames = (): string[] => {
+  return users.map(u => u.username);
+};
+
+// --- Deprecated funksjoner (bakoverkompatibilitet) ---
+
+export interface ProfileConfig {
+  name: UserName;
+  color: 'rose' | 'cyan' | 'amber';
+  _k: string;
+}
+
+export const getProfiles = (): ProfileConfig[] => {
+  return users.map(u => ({
+    name: u.displayName,
+    color: u.color,
+    _k: u.passwordHash
+  }));
+};
+
+export const validatePassword = (name: UserName, password: string): boolean => {
+  const user = users.find(u => u.displayName === name);
+  if (!user) return false;
+  return deobfuscate(user.passwordHash) === password;
 };

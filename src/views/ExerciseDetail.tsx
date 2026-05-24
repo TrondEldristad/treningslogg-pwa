@@ -19,12 +19,14 @@ function StrengthView({ exercise }: Props) {
   const { logs, addLog, deleteLog } = useStrengthLogs(exercise.id);
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  const lastLog = logs.length > 0 ? logs[0] : null;
+
   const allSame = (sets: { reps: number; weight_kg: number }[]) =>
     sets.every(s => s.reps === sets[0].reps && s.weight_kg === sets[0].weight_kg);
 
   return (
     <div>
-      <StrengthLogForm onAdd={addLog} />
+      <StrengthLogForm onAdd={addLog} lastLog={lastLog} />
       {logs.length === 0 ? (
         <p className="text-center text-[#444] text-sm py-6">Ingen registreringer ennå</p>
       ) : (
@@ -103,9 +105,11 @@ function formatPace(km: number, totalMinutes: number): string | null {
 function CardioView({ exercise }: Props) {
   const { logs, addLog, deleteLog } = useCardioLogs(exercise.id);
 
+  const lastLog = logs.length > 0 ? logs[0] : null;
+
   return (
     <div>
-      <CardioLogForm onAdd={addLog} />
+      <CardioLogForm onAdd={addLog} lastLog={lastLog} />
       {logs.length === 0 ? (
         <p className="text-center text-[#444] text-sm py-6">Ingen registreringer ennå</p>
       ) : (

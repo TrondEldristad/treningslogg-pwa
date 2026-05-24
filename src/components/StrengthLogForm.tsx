@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, ChevronRight } from 'lucide-react';
-import type { SetData } from '../types';
+import type { SetData, StrengthLog } from '../types';
 
 interface Props {
   onAdd: (sets: number, reps: number, weight: number, date: string, setsData: SetData[]) => Promise<void>;
+  lastLog?: StrengthLog | null;
 }
 
 interface SetFormData {
@@ -19,7 +20,7 @@ function buildSets(count: number, reps: number, weight: number): SetFormData[] {
   return Array.from({ length: count }, (_, i) => ({ set: i + 1, reps: String(reps), weight_kg: String(weight) }));
 }
 
-export default function StrengthLogForm({ onAdd }: Props) {
+export default function StrengthLogForm({ onAdd, lastLog }: Props) {
   const today = new Date().toISOString().split('T')[0];
   const [step, setStep] = useState<'config' | 'sets'>('config');
   const [numSets, setNumSets] = useState('3');
@@ -28,6 +29,15 @@ export default function StrengthLogForm({ onAdd }: Props) {
   const [date, setDate] = useState(today);
   const [setsData, setSetsData] = useState<SetFormData[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Initialiser med verdier fra siste logg
+  useEffect(() => {
+    if (lastLog && step === 'config') {
+      setNumSets(String(lastLog.sets));
+      setDefaultReps(String(lastLog.reps));
+      setDefaultWeight(String(lastLog.weight_kg));
+    }
+  }, [lastLog, step]);
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,9 +84,6 @@ export default function StrengthLogForm({ onAdd }: Props) {
       const maxWeight = Math.max(...numeric.map(s => s.weight_kg));
       await onAdd(numeric.length, avgReps, maxWeight, date, numeric);
       setStep('config');
-      setDefaultWeight('');
-      setNumSets('3');
-      setDefaultReps('10');
     } catch {
       // Feil håndteres i onAdd
     } finally {

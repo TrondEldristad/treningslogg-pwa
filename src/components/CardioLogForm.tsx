@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import type { CardioLog } from '../types';
 
 interface Props {
   onAdd: (distance_km: number, duration_minutes: number, date: string) => Promise<void>;
+  lastLog?: CardioLog | null;
 }
 
 const inputCls = 'w-full min-w-0 border border-[#2a2a2a] rounded-lg px-2 py-2.5 text-sm font-medium text-white bg-[#111] focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60';
@@ -15,13 +17,25 @@ function calcPace(km: number, totalMinutes: number): string | null {
   return `${min}:${String(sec).padStart(2, '0')}`;
 }
 
-export default function CardioLogForm({ onAdd }: Props) {
+export default function CardioLogForm({ onAdd, lastLog }: Props) {
   const today = new Date().toISOString().split('T')[0];
   const [distance, setDistance] = useState('');
   const [minutes, setMinutes] = useState('');
   const [seconds, setSeconds] = useState('');
   const [date, setDate] = useState(today);
   const [saving, setSaving] = useState(false);
+
+  // Initialiser med verdier fra siste logg
+  useEffect(() => {
+    if (lastLog) {
+      setDistance(String(lastLog.distance_km));
+      const totalMins = lastLog.duration_minutes;
+      const mins = Math.floor(totalMins);
+      const secs = Math.round((totalMins - mins) * 60);
+      setMinutes(String(mins));
+      setSeconds(String(secs));
+    }
+  }, [lastLog]);
 
   const totalMinutes = (Number(minutes) || 0) + (Number(seconds) || 0) / 60;
   const pace = calcPace(Number(distance), totalMinutes);
@@ -50,9 +64,6 @@ export default function CardioLogForm({ onAdd }: Props) {
     setSaving(true);
     try {
       await onAdd(dist, totalMins, date);
-      setDistance('');
-      setMinutes('');
-      setSeconds('');
     } catch {
       // Feil håndteres i onAdd
     } finally {

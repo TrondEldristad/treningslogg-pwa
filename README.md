@@ -5,9 +5,11 @@ En moderne treningstracker-app for å logge og følge med på styrke- og kardio�
 ## ✨ Funksjoner
 
 - 📊 **Logg økter:** Detaljert logging av styrke (sett/reps/vekt) og kardio (distanse/varighet)
+- 🔄 **Smart defaults:** Nye økter fylles automatisk med verdier fra siste økt
 - 📅 **Treningsdager:** Organisér øvelser i ukentlige treningsdager
 - 📈 **Ukentlig oversikt:** Se hvilke øvelser du har gjennomført denne uken
-- 👥 **Multi-bruker:** Støtte for 3 brukerprofiler med passordbeskyttelse
+- 👥 **Multi-bruker:** Støtte for flere brukerprofiler med individuelle passord
+- 🔐 **Moderne innlogging:** Tekstfelt-basert innlogging med autocomplete-støtte
 - 📱 **PWA:** Installer som app på mobil og tablet
 - 🎨 **Mørkt tema:** Øyevennlig dark mode design
 
@@ -44,10 +46,28 @@ En moderne treningstracker-app for å logge og følge med på styrke- og kardio�
      VITE_SUPABASE_ANON_KEY=your-anon-key
      ```
 
-5. **Endre passord (VIKTIG!):**
+5. **Konfigurer brukere og passord (VIKTIG!):**
    - Åpne `src/config/profiles.ts`
-   - Endre passord for hver bruker
-   - Default passord: `treninglogg2026`
+   - Standard brukere:
+     - **Brukernavn:** `marisol` | **Passord:** `marisolPass2026`
+     - **Brukernavn:** `therese` | **Passord:** `theresePass2026`
+     - **Brukernavn:** `trond` | **Passord:** `trondPass2026`
+   - **Endre passordene** før produksjon!
+   
+   For å legge til ny bruker:
+   ```typescript
+   // I profiles.ts, legg til i users array:
+   {
+     username: 'nyttbrukernavn',
+     displayName: 'Visningsnavn',
+     passwordHash: obfuscate('dittpassord'),
+     color: 'rose' // eller 'cyan', 'amber'
+   }
+   ```
+   
+   Husk også å oppdatere:
+   - `UserName` type i `src/context/ProfileContext.tsx`
+   - RLS policies i Supabase (se `supabase/migrations/`)
 
 6. **Start dev-server:**
    ```bash
@@ -79,23 +99,89 @@ En moderne treningstracker-app for å logge og følge med på styrke- og kardio�
    - Build-settings hentes automatisk fra `netlify.toml`
    - Første deploy starter automatisk
 
+## 🔐 Innlogging
+
+**Standard brukere:**
+
+| Brukernavn (case-insensitive) | Passord | Farge |
+|-------------------------------|---------|-------|
+| `marisol` | `marisolPass2026` | Rose |
+| `therese` | `theresePass2026` | Cyan |
+| `trond` | `trondPass2026` | Amber |
+
+**Funksjoner:**
+- Case-insensitive brukernavn (kan skrive "Marisol", "marisol", eller "MARISOL")
+- Autocomplete-støtte for iOS Keychain og Chrome Password Manager
+- 7-dagers session (automatisk pålogget i en uke)
+- Vis/skjul passord-funksjonalitet
+
+**⚠️ Endre passordene før produksjon!**
+
 ## 🛡️ Sikkerhet
 
 ⚠️ **Viktig sikkerhetsinformasjon:**
 
 - Denne appen bruker **frontend-basert passordbeskyttelse**
-- Passord er obfuskert i kildekode, men **ikke kryptografisk sikret**
+- Passord er obfuskert (base64 + reversering), men **ikke kryptografisk sikret**
+- Hvert brukernavn har sitt eget individuelle passord
 - Egnet for **privat bruk** med betrodde brukere
 - Supabase API-nøkler er synlige i kompilert kode (standard for frontend-apper)
 - Row Level Security (RLS) beskytter database-operasjoner
 
 **Anbefalt bruk:**
 - ✅ Privat app for familie/venner
+- ✅ Små lukkede grupper med individuelt passord
 - ❌ Ikke for sensitive persondata
 - ❌ Ikke for offentlige tjenester
 
-**For skalering:**
-Implementer Supabase Auth med `auth.uid()` for ekte brukerautentisering.
+**For bedre sikkerhet og skalering:**
+Implementer Supabase Auth med bcrypt-hashing og database-basert brukerautentisering. Se issues/discussions for veiledning.
+
+## 👤 Legge til nye brukere
+
+**Steg 1: Oppdater brukerliste**
+Åpne `src/config/profiles.ts` og legg til ny bruker i `users` array:
+
+```typescript
+{
+  username: 'emma',              // Lowercase, brukes ved innlogging
+  displayName: 'Emma',           // Visningsnavn i UI
+  passwordHash: obfuscate('emmasPassord123'),
+  color: 'rose'                  // 'rose', 'cyan', eller 'amber'
+}
+```
+
+**Steg 2: Oppdater TypeScript type**
+Åpne `src/context/ProfileContext.tsx` og legg til i `UserName` type:
+
+```typescript
+export type UserName = 'Marisol' | 'Therese' | 'Trond' | 'Emma';
+```
+
+**Steg 3: Oppdater database RLS policies**
+Kjør SQL-kommando i Supabase SQL Editor:
+
+```sql
+-- Oppdater training_days policies
+DROP POLICY IF EXISTS "Users can insert own training days" ON public.training_days;
+CREATE POLICY "Users can insert own training days"
+  ON public.training_days FOR INSERT
+  WITH CHECK (user_name IN ('Marisol', 'Therese', 'Trond', 'Emma'));
+
+-- Gjenta for alle policies i exercises, strength_logs, og cardio_logs tabeller
+-- Se supabase/migrations/ for fullstendig liste
+```
+
+**Steg 4: Deploy**
+
+```bash
+npm run build
+git add .
+git commit -m "feat: Legg til Emma som ny bruker"
+git push
+```
+
+Den nye brukeren kan nå logge inn med brukernavn `emma` (case-insensitive) og passordet du satte!
 
 ## 📱 Bruk som PWA
 
@@ -123,11 +209,25 @@ Implementer Supabase Auth med `auth.uid()` for ekte brukerautentisering.
 ```
 src/
 ├── components/      # Gjenbrukbare UI-komponenter
-├── config/          # Konfigurasjon (passord, etc.)
-├── context/         # React Context (profil-state)
+│   ├── ProfileSelector.tsx     # Innloggingsskjerm
+│   ├── StrengthLogForm.tsx     # Styrkeøkt-skjema
+│   ├── CardioLogForm.tsx       # Kardioøkt-skjema
+│   └── ...
+├── config/          # Konfigurasjon
+│   └── profiles.ts             # Brukere og passord
+├── context/         # React Context
+│   └── ProfileContext.tsx      # Bruker-state og session
 ├── hooks/           # Custom React hooks
-├── lib/             # Supabase client
-├── views/           # Hovedvisninger (Logg, Oversikt, Innstillinger)
+│   ├── useTrainingDays.ts
+│   ├── useExercises.ts
+│   └── useLogs.ts
+├── lib/             # Tredjeparts-integrasjoner
+│   └── supabase.ts             # Supabase client
+├── views/           # Hovedvisninger
+│   ├── LogView.tsx             # Logg økter
+│   ├── OverviewView.tsx        # Statistikk
+│   ├── SettingsView.tsx        # Innstillinger
+│   └── ExerciseDetail.tsx      # Detaljer per øvelse
 ├── types.ts         # TypeScript type definitions
 └── App.tsx          # Root komponent
 ```
@@ -153,6 +253,22 @@ npm run preview
 - `npm run preview` - Preview produksjonsbygg
 - `npm run lint` - Kjør ESLint
 - `npm run typecheck` - TypeScript type-sjekk
+
+## 🆕 Nylige endringer
+
+### v2.0 - Forbedret innlogging og smart defaults (2026-05-24)
+- ✨ **Ny innloggingsmetode:** Tekstfelt-basert innlogging med brukernavn + passord
+- 🔐 **Individuelle passord:** Hver bruker har nå sitt eget unike passord
+- 🔄 **Smart defaults:** Loggskjemaer fylles automatisk med verdier fra siste økt
+- 🎯 **Case-insensitive:** Brukernavn kan skrives med stor/liten bokstav
+- 🔑 **Autocomplete:** Støtte for iOS Keychain og Chrome Password Manager
+- 📱 **Bedre UX:** Enklere og mer intuitiv innloggingsprosess
+
+### v1.0 - Initial release
+- 📊 Grunnleggende logging av styrke- og kardioøvelser
+- 👥 Multi-bruker støtte
+- 📱 PWA-funksjonalitet
+- 🎨 Mørkt tema
 
 ## 📄 Lisens
 

@@ -4,6 +4,8 @@ En moderne treningstracker-app for å logge og følge med på styrke- og kardio�
 
 ## ✨ Funksjoner
 
+- 🎯 **Drag-and-drop:** Endre rekkefølgen på øvelser innenfor hver treningsdag
+- 💪 **Intensitetsvurdering:** Marker hver styrkeøkt som lett, passe, eller tungt
 - 📊 **Logg økter:** Detaljert logging av styrke (sett/reps/vekt) og kardio (distanse/varighet)
 - 🔄 **Smart defaults:** Nye økter fylles automatisk med verdier fra siste økt
 - 📅 **Treningsdager:** Organisér øvelser i ukentlige treningsdager
@@ -35,8 +37,15 @@ En moderne treningstracker-app for å logge og følge med på styrke- og kardio�
 
 3. **Sett opp database:**
    - Opprett nytt prosjekt på [supabase.com](https://supabase.com)
-   - Gå til SQL Editor
-   - Kjør `MIGRATE_TO_NEW_SUPABASE.sql` (i rot-mappen)
+   - Gå til SQL Editor i ditt nye prosjekt
+   - Kjør migreringsfilene i `supabase/migrations/` i kronologisk rekkefølge:
+     1. `20260513142646_create_workout_tracker_schema.sql`
+     2. `20260513143249_add_user_id_and_fix_rls.sql`
+     3. `20260513143609_relax_rls_to_anon_with_user_id_check.sql`
+     4. `20260513143640_fix_rls_for_single_user_personal_app.sql`
+     5. `20260514085322_fix_rls_policies_restrict_by_user_name.sql`
+     6. `20260515052339_add_trond_user_and_duration_minutes.sql`
+     7. `20260515113339_add_trond_to_user_name_check_constraint.sql`
 
 4. **Konfigurer miljøvariabler:**
    - Kopier `.env.example` til `.env`
@@ -255,6 +264,14 @@ npm run preview
 - `npm run typecheck` - TypeScript type-sjekk
 
 ## 🆕 Nylige endringer
+
+### v2.1 - Drag-and-drop og intensitetsvurdering (2026-05-25)
+- 🎯 **Drag-and-drop øvelser:** Endre rekkefølgen på øvelser innenfor en treningsdag med intuitiv dra-og-slipp
+- 💪 **Intensitetsvurdering:** Vurder hver styrkeøkt som Lett (🟢), Passe (🟡), eller Tungt (🔴)
+- 📱 **Touch-optimalisert:** 150ms delay på mobil for bedre touch-opplevelse
+- 🎨 **Synlig grip-håndtak:** Tydelig visuelt håndtak for å dra øvelser
+- 📊 **Intensitet i historikk:** Se intensitetsvurdering på tidligere økter med farget indikator
+- 💾 **Bakoverkompatibel:** Gamle økter uten intensitetsvurdering vises som normalt
 
 ### v2.0 - Forbedret innlogging og smart defaults (2026-05-24)
 - ✨ **Ny innloggingsmetode:** Tekstfelt-basert innlogging med brukernavn + passord

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, ChevronRight, Archive, ArchiveRestore, Dumbbell, Activity, Pencil, Trash2, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { Plus, ChevronRight, Archive, ArchiveRestore, Dumbbell, Activity, Pencil, Trash2, ChevronDown, ChevronUp, Check, GripVertical } from 'lucide-react';
 import type { TrainingDay, Exercise } from '../types';
 import type { UserName } from '../context/ProfileContext';
 import { useTrainingDays } from '../hooks/useTrainingDays';
@@ -7,6 +7,22 @@ import { useExercises } from '../hooks/useExercises';
 import { useWeeklyActivity } from '../hooks/useWeeklyActivity';
 import Modal from '../components/Modal';
 import ExerciseDetail from './ExerciseDetail';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Props {
   userName: UserName;
@@ -131,6 +147,77 @@ function AddExerciseModal({ onAdd, onClose }: { onAdd: (name: string, type: 'str
   );
 }
 
+function SortableExerciseItem({
+  exercise,
+  logCount,
+  onSelect,
+  onArchive,
+}: {
+  exercise: Exercise;
+  logCount: number;
+  onSelect: (ex: Exercise) => void;
+  onArchive: (id: string, archived: boolean) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: exercise.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const doneThisWeek = logCount > 0;
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-[#444] hover:text-[#777] transition-colors touch-none flex-shrink-0 p-1"
+        aria-label="Dra for å endre rekkefølge"
+      >
+        <GripVertical size={18} />
+      </div>
+      <button
+        onClick={() => onSelect(exercise)}
+        className={`flex-1 flex items-center justify-between rounded-xl px-4 py-3 transition-colors group border ${
+          doneThisWeek
+            ? 'bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10'
+            : 'bg-[#111] border-[#2a2a2a] hover:border-orange-500/30 hover:bg-orange-500/5'
+        }`}
+      >
+        <div className="flex items-center gap-2.5">
+          {doneThisWeek ? (
+            <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center flex-shrink-0">
+              <Check size={10} className="text-emerald-400" strokeWidth={3} />
+            </span>
+          ) : (
+            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${exercise.type === 'cardio' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
+          )}
+          <span className={`text-sm font-semibold transition-colors ${doneThisWeek ? 'text-emerald-300 group-hover:text-emerald-200' : 'text-[#ccc] group-hover:text-white'}`}>
+            {exercise.name}
+          </span>
+          {logCount > 1 && (
+            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/25 px-1.5 py-0.5 rounded-full">
+              x{logCount}
+            </span>
+          )}
+        </div>
+        <ChevronRight size={16} className={`transition-colors flex-shrink-0 ${doneThisWeek ? 'text-emerald-500/40 group-hover:text-emerald-400' : 'text-[#333] group-hover:text-orange-400'}`} />
+      </button>
+      <button
+        onClick={() => onArchive(exercise.id, true)}
+        title="Arkiver"
+        className="p-2.5 text-[#666] hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors cursor-pointer"
+      >
+        <Archive size={16} />
+      </button>
+    </div>
+  );
+}
+
 function DayExercises({
   day,
   onSelectExercise,
@@ -142,60 +229,51 @@ function DayExercises({
   exerciseLogCounts: Record<string, number>;
   onActivityChange: () => void;
 }) {
-  const { exercises, addExercise, archiveExercise } = useExercises(day.id);
+  const { exercises, addExercise, archiveExercise, reorderExercises } = useExercises(day.id);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
   const active = exercises.filter(e => !e.archived);
   const archived = exercises.filter(e => e.archived);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active: dragActive, over } = event;
+    if (!over || dragActive.id === over.id) return;
+
+    const oldIndex = active.findIndex(e => e.id === dragActive.id);
+    const newIndex = active.findIndex(e => e.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(active, oldIndex, newIndex);
+    reorderExercises(reordered);
+  };
+
   return (
     <div className="mt-3 space-y-1.5">
       {active.length === 0 && (
         <p className="text-sm text-[#444] text-center py-3">Ingen øvelser ennå</p>
       )}
-      {active.map(ex => {
-        const logCount = exerciseLogCounts[ex.id] ?? 0;
-        const doneThisWeek = logCount > 0;
-        return (
-          <div key={ex.id} className="flex items-center gap-2">
-            <button
-              onClick={() => onSelectExercise(ex)}
-              className={`flex-1 flex items-center justify-between rounded-xl px-4 py-3 transition-colors group border ${
-                doneThisWeek
-                  ? 'bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10'
-                  : 'bg-[#111] border-[#2a2a2a] hover:border-orange-500/30 hover:bg-orange-500/5'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                {doneThisWeek ? (
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center flex-shrink-0">
-                    <Check size={10} className="text-emerald-400" strokeWidth={3} />
-                  </span>
-                ) : (
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${ex.type === 'cardio' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
-                )}
-                <span className={`text-sm font-semibold transition-colors ${doneThisWeek ? 'text-emerald-300 group-hover:text-emerald-200' : 'text-[#ccc] group-hover:text-white'}`}>
-                  {ex.name}
-                </span>
-                {logCount > 1 && (
-                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/25 px-1.5 py-0.5 rounded-full">
-                    x{logCount}
-                  </span>
-                )}
-              </div>
-              <ChevronRight size={16} className={`transition-colors flex-shrink-0 ${doneThisWeek ? 'text-emerald-500/40 group-hover:text-emerald-400' : 'text-[#333] group-hover:text-orange-400'}`} />
-            </button>
-            <button
-              onClick={() => archiveExercise(ex.id, true)}
-              title="Arkiver"
-              className="p-2.5 text-[#666] hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors cursor-pointer"
-            >
-              <Archive size={16} />
-            </button>
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={active.map(e => e.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-1.5">
+            {active.map(ex => (
+              <SortableExerciseItem
+                key={ex.id}
+                exercise={ex}
+                logCount={exerciseLogCounts[ex.id] ?? 0}
+                onSelect={onSelectExercise}
+                onArchive={archiveExercise}
+              />
+            ))}
           </div>
-        );
-      })}
+        </SortableContext>
+      </DndContext>
 
       <button
         onClick={() => setShowAddExercise(true)}

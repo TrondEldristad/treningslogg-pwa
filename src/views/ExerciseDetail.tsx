@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { ArrowLeft, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
-import type { Exercise } from '../types';
+import type { Exercise, Intensity } from '../types';
 import { useStrengthLogs, useCardioLogs } from '../hooks/useLogs';
 import StrengthLogForm from '../components/StrengthLogForm';
 import CardioLogForm from '../components/CardioLogForm';
+
+const intensityConfig: Record<Intensity, { dot: string; label: string }> = {
+  light:  { dot: 'bg-green-500',  label: 'Lett'  },
+  medium: { dot: 'bg-yellow-500', label: 'Passe' },
+  heavy:  { dot: 'bg-red-500',    label: 'Tungt' },
+};
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -40,9 +46,20 @@ function StrengthView({ exercise }: Props) {
               <div key={log.id} className="bg-[#161616] border border-[#222] rounded-xl overflow-hidden">
                 <div className="px-4 py-3 flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <span className="text-lg font-black text-orange-400">{log.weight_kg} kg</span>
                       <span className="text-sm text-[#555]">{log.sets} sett × {log.reps} reps</span>
+                      {(() => {
+                        const intensity = log.sets_data?.[0]?.intensity;
+                        if (!intensity) return null;
+                        const cfg = intensityConfig[intensity];
+                        return (
+                          <span className="flex items-center gap-1">
+                            <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+                            <span className="text-xs text-[#666]">{cfg.label}</span>
+                          </span>
+                        );
+                      })()}
                     </div>
                     <p className="text-xs text-[#444] mt-0.5">{formatDate(log.logged_at)}</p>
                   </div>

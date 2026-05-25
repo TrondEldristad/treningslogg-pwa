@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, ChevronRight } from 'lucide-react';
-import type { SetData, StrengthLog } from '../types';
+import type { SetData, StrengthLog, Intensity } from '../types';
 
 interface Props {
   onAdd: (sets: number, reps: number, weight: number, date: string, setsData: SetData[]) => Promise<void>;
@@ -11,13 +11,14 @@ interface SetFormData {
   set: number;
   reps: string;
   weight_kg: string;
+  intensity: Intensity;
 }
 
 const inputCls = 'w-full min-w-0 border border-[#2a2a2a] rounded-lg px-2 py-2.5 text-sm font-medium text-white bg-[#111] focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/60';
 const smallInputCls = 'w-full min-w-0 border border-[#2a2a2a] rounded-lg px-1.5 py-2 text-sm font-medium text-white bg-[#111] focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/60 text-center';
 
 function buildSets(count: number, reps: number, weight: number): SetFormData[] {
-  return Array.from({ length: count }, (_, i) => ({ set: i + 1, reps: String(reps), weight_kg: String(weight) }));
+  return Array.from({ length: count }, (_, i) => ({ set: i + 1, reps: String(reps), weight_kg: String(weight), intensity: 'medium' as Intensity }));
 }
 
 export default function StrengthLogForm({ onAdd, lastLog }: Props) {
@@ -79,6 +80,7 @@ export default function StrengthLogForm({ onAdd, lastLog }: Props) {
         set: s.set,
         reps: Number(s.reps) || 0,
         weight_kg: Number(s.weight_kg) || 0,
+        intensity: s.intensity,
       }));
       const avgReps = Math.round(numeric.reduce((sum, s) => sum + s.reps, 0) / numeric.length);
       const maxWeight = Math.max(...numeric.map(s => s.weight_kg));
@@ -143,6 +145,35 @@ export default function StrengthLogForm({ onAdd, lastLog }: Props) {
                 />
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Intensity Selector */}
+        <div className="mb-4">
+          <label className="text-xs text-[#555] font-bold block mb-2 uppercase tracking-wide">
+            Hvordan føltes økten?
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { value: 'light' as Intensity, label: 'Lett', activeColor: 'border-green-500 bg-green-500/10', dotActive: 'bg-green-500', dotInactive: 'bg-green-500/30', hoverBorder: 'hover:border-green-500/50' },
+              { value: 'medium' as Intensity, label: 'Passe', activeColor: 'border-yellow-500 bg-yellow-500/10', dotActive: 'bg-yellow-500', dotInactive: 'bg-yellow-500/30', hoverBorder: 'hover:border-yellow-500/50' },
+              { value: 'heavy' as Intensity, label: 'Tungt', activeColor: 'border-red-500 bg-red-500/10', dotActive: 'bg-red-500', dotInactive: 'bg-red-500/30', hoverBorder: 'hover:border-red-500/50' },
+            ]).map(({ value, label, activeColor, dotActive, dotInactive, hoverBorder }) => {
+              const isSelected = setsData.length > 0 && setsData.every(s => s.intensity === value);
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setSetsData(prev => prev.map(s => ({ ...s, intensity: value })))}
+                  className={`flex flex-col items-center gap-1.5 py-3 rounded-lg border-2 transition-all cursor-pointer ${
+                    isSelected ? activeColor : `border-[#2a2a2a] bg-[#141414] ${hoverBorder}`
+                  }`}
+                >
+                  <div className={`w-6 h-6 rounded-full transition-all ${isSelected ? dotActive : dotInactive}`} />
+                  <span className="text-xs font-medium text-white">{label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 

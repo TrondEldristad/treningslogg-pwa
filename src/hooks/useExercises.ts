@@ -69,5 +69,28 @@ export function useExercises(trainingDayId: string | null) {
     }
   };
 
-  return { exercises, loading, addExercise, archiveExercise, deleteExercise, refetch: fetch };
+  const reorderExercises = async (reordered: Exercise[]) => {
+    // Optimistisk oppdatering av lokal state
+    setExercises(prev => {
+      const archived = prev.filter(e => e.archived);
+      return [...reordered, ...archived];
+    });
+    try {
+      await Promise.all(
+        reordered.map((ex, index) =>
+          supabase
+            .from('exercises')
+            .update({ sort_order: index })
+            .eq('id', ex.id)
+        )
+      );
+    } catch (err) {
+      console.error('Kunne ikke endre rekkefølge:', err);
+      alert('Kunne ikke endre rekkefølge. Prøv igjen senere.');
+      fetch(); // Reverter ved feil
+      throw err;
+    }
+  };
+
+  return { exercises, loading, addExercise, archiveExercise, deleteExercise, reorderExercises, refetch: fetch };
 }

@@ -15,10 +15,13 @@ export interface Exercise {
   created_at: string;
 }
 
+export type Intensity = 'light' | 'medium' | 'heavy';
+
 export interface SetData {
   set: number;
   reps: number;
   weight_kg: number;
+  intensity?: Intensity;
 }
 
 export interface StrengthLog {
